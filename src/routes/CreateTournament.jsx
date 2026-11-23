@@ -54,7 +54,7 @@ const CreateTournament = () => {
       }
 
       const token = localStorage.getItem('token');
-      const response = await axios.post(\u0060${API_URL}/api/tournaments\u0060, formDataToSend, {
+      const response = await axios.post(`${API_URL}/api/tournaments`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
