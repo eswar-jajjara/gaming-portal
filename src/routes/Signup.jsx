@@ -33,7 +33,7 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(\u0060${API_URL}/api/auth/signup\u0060, formData);
+      const response = await axios.post(`${API_URL}/api/auth/signup`, formData);
       localStorage.setItem('token', response.data.token);
       navigate('/dashboard');
     } catch (error) {
