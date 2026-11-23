@@ -1,94 +1,162 @@
-# PROARENA — Full-Stack Gaming Tournament Portal
+# PROARENA — Gaming Tournament Portal
 
-PROARENA combines a React/Vite client with a Java 17 + Spring Boot REST API and a relational database. Players can create accounts, sign in, browse tournaments, and (when authenticated) create tournaments. The API stores accounts and tournaments in a database, hashes passwords with BCrypt, and protects write operations with signed JWT bearer tokens.
+PROARENA is a full-stack gaming portal project. It pairs a React interface with a Java Spring Boot REST API and persistent player and tournament data.
 
-## Stack
+## What the project includes
 
-- **Frontend:** React 19, Vite, React Router, Axios, Bootstrap
-- **Backend:** Java 17, Spring Boot 3.4, Spring Web, Spring Security, Spring Data JPA, Bean Validation
-- **Data:** PostgreSQL 16 in Docker Compose; local development also supports file-backed H2
-- **Authentication:** BCrypt password hashes and stateless signed JWTs
-- **Operations:** Docker Compose, health endpoint, configurable environment variables
+- Player signup and login with BCrypt password hashing and signed JWT authentication.
+- Public tournament list and detail API endpoints.
+- Authenticated tournament creation, including optional banner image upload.
+- PostgreSQL database for the Docker workflow and file-backed H2 for local backend development.
+- React pages for home, login, signup, dashboard, tournament creation and registration, leaderboard, groups, play, gaming gear, business, and more.
 
-## Run locally
+The React pages have different levels of functionality. Signup, login, and tournament creation are wired to the backend. Several other pages are currently UI/demo pages; in particular, the leaderboard uses sample data, and tournament registration is not yet backed by a registration API. See [Current scope](#current-scope).
 
-Requirements: Node.js 20+, Java 17+, Maven 3.9+. Docker Desktop is needed only for the PostgreSQL workflow.
+## Technology
 
-### Option A — PostgreSQL with Docker
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 19, Vite 6, React Router, Axios, Bootstrap |
+| Backend | Java 17, Spring Boot 3.4, Spring Web, Spring Security, Spring Data JPA, Bean Validation |
+| Database | PostgreSQL 16 (Docker Compose) or H2 (local development) |
+| Authentication | BCrypt password hashes and stateless JWT bearer tokens |
+| Local environment | Docker Compose, Maven |
 
-From the repository root:
+## Run the project
+
+### Requirements
+
+- Node.js and npm
+- Java 17 and Maven 3.9+
+- Docker Desktop for the PostgreSQL and Docker Compose option
+
+### Option 1: Run PostgreSQL and the API with Docker
+
+From the repository root, start the database and backend:
 
 ```bash
 docker compose up --build
 ```
 
-In a second terminal:
+Keep that terminal running. In a second terminal, install and start the frontend:
 
 ```bash
 npm install
-cp .env.example .env
 npm run dev
 ```
 
-Open http://localhost:5173. The API listens at http://localhost:8080. For Windows PowerShell, use `Copy-Item .env.example .env` in place of `cp`.
+Open the Vite URL shown in the terminal (normally http://localhost:5173). The API is available at http://localhost:8080.
 
-### Option B — Local H2 database
+To stop the containers, press Ctrl+C and run `docker compose down`. The named PostgreSQL volume keeps database data between container restarts. To remove the database volume as well, run `docker compose down -v`.
 
-Run the frontend as above, then start the API from `backend/`:
+The Compose file uses local development credentials by default. Set `POSTGRES_PASSWORD` and `JWT_SECRET` in the environment before using this setup outside local development.
+
+### Option 2: Run the backend with H2
+
+Start the API from the backend directory:
 
 ```bash
+cd backend
 mvn spring-boot:run
 ```
 
-The default profile creates a local file-backed H2 database under `backend/data`. The H2 console is at http://localhost:8080/h2-console (JDBC URL `jdbc:h2:file:./data/proarena`, username `sa`, blank password).
+The API starts on port 8080 and creates a file-backed H2 database in `backend/data`. To start the frontend, open a separate terminal at the repository root:
+
+```bash
+npm install
+npm run dev
+```
+
+The H2 console is available at http://localhost:8080/h2-console. Use JDBC URL `jdbc:h2:file:./data/proarena`, username `sa`, and a blank password. The JDBC path is relative to the backend working directory.
+
+### Frontend API URL
+
+The frontend defaults to `http://localhost:8080`. To point it at another API origin, create a root `.env` file (PowerShell: `Copy-Item .env.example .env`) and set:
+
+```dotenv
+VITE_API_URL=http://localhost:8080
+```
+
+Restart Vite after changing environment variables.
+
+## API reference
+
+Protected endpoints require this header:
+
+```http
+Authorization: Bearer <token>
+```
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| GET | `/api/health` | Public | Health status and timestamp |
+| POST | `/api/auth/signup` | Public | Register a player; returns a token and player profile |
+| POST | `/api/auth/login` | Public | Authenticate with email and password |
+| GET | `/api/auth/me` | Token | Return the authenticated player profile |
+| GET | `/api/tournaments` | Public | List tournaments ordered by start date |
+| GET | `/api/tournaments/{id}` | Public | Get one tournament |
+| GET | `/api/tournaments/mine` | Token | List tournaments created by the authenticated player |
+| POST | `/api/tournaments` | Token | Create a tournament using multipart form data |
+
+Signup request example:
+
+```json
+{
+  "username": "player-one",
+  "email": "player@example.com",
+  "password": "choose-a-password",
+  "confirmPassword": "choose-a-password"
+}
+```
+
+Tournament creation accepts multipart fields for `name`, `game`, `startDate` (ISO date, such as `2026-12-15`), `endDate`, `maxParticipants`, `prizePool`, `rules`, `platform`, `registrationFee`, `tournamentType`, `streamUrl`, and optional `bannerImage`. Images are limited to 5 MB and supported image formats.
 
 ## Configuration
 
+The backend reads these environment variables:
+
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `VITE_API_URL` | `http://localhost:8080` | Frontend API origin |
-| `DATABASE_URL` | `jdbc:h2:file:./data/proarena;MODE=PostgreSQL;DB_CLOSE_ON_EXIT=FALSE` | JDBC connection |
-| `DATABASE_USERNAME` / `DATABASE_PASSWORD` | `sa` / blank | Database credentials |
-| `JWT_SECRET` | Development-only value | HMAC signing secret; set a long random secret outside local development |
-| `FRONTEND_ORIGIN` | `http://localhost:5173` | Allowed browser origin |
+| `PORT` | `8080` | API port |
+| `DATABASE_URL` | File-backed H2 URL | JDBC connection |
+| `DATABASE_USERNAME` | `sa` | Database username |
+| `DATABASE_PASSWORD` | Empty | Database password |
+| `JWT_SECRET` | Development-only fallback | JWT signing key; replace with a private random secret outside local development |
+| `FRONTEND_ORIGIN` | `http://localhost:5173` | Allowed frontend origin |
 
-## API
+Docker Compose supplies PostgreSQL connection settings to the API. For local use with H2, the defaults work without additional backend configuration.
 
-| Method | Endpoint | Access | Purpose |
-| --- | --- | --- | --- |
-| GET | `/api/health` | Public | API health and timestamp |
-| POST | `/api/auth/signup` | Public | Create account; returns `token` and `player` |
-| POST | `/api/auth/login` | Public | Verify credentials; returns `token` and `player` |
-| GET | `/api/auth/me` | Bearer token | Current player profile |
-| GET | `/api/tournaments` | Public | List tournaments by start date |
-| GET | `/api/tournaments/{id}` | Public | Tournament details |
-| GET | `/api/tournaments/mine` | Bearer token | Current player's tournaments |
-| POST | `/api/tournaments` | Bearer token | Create tournament (multipart form; optional image up to 5 MB) |
+## Repository layout
 
-For protected requests, send `Authorization: Bearer <token>`. Signup accepts the frontend's `username`, `email`, `password`, and optional `confirmPassword` fields. Passwords must be at least 8 characters.
-
-## Data and scope
-
-JPA persists players and tournaments. Tournament banners are stored in the API's local `uploads/` directory; use persistent storage when deploying. This is a portfolio/demo application: it does not process payments, provide production account recovery, or include tournament registration/match-result workflows yet.
-
-## Project structure
-
-```
-src/                         React/Vite frontend
-backend/src/main/java/       Spring Boot API, auth, persistence, security
-backend/src/main/resources/  application configuration
-docker-compose.yml           PostgreSQL + API services
+```text
+src/                              React/Vite application
+  routes/                         Frontend page components
+backend/
+  src/main/java/com/proarena/     Spring Boot API, auth, security, persistence
+  src/main/resources/             Backend configuration
+  pom.xml                         Maven dependencies and build
+docker-compose.yml                PostgreSQL and backend services
+.env.example                      Frontend API URL example
 ```
 
-## Verify
+## Build commands
+
+Run these from the repository root:
 
 ```bash
-# Frontend
 npm install
 npm run build
+npm run lint
+```
 
-# Backend (from backend/)
+Run the backend build from `backend/`:
+
+```bash
 mvn verify
 ```
 
-No verification commands are claimed as passing unless run in the target environment.
+## Current scope
+
+The API currently persists player accounts and tournaments. Passwords are hashed, and tournament write endpoints require a valid JWT. Tournament banner files are stored in the backend's local `uploads/` directory, so deployments need persistent file storage or an object-storage integration.
+
+This is a portfolio project and is still under development. Payments, password recovery, tournament registration persistence, group management, match results, and a database-backed leaderboard are not implemented yet. Some frontend routes are presentation/demo pages and may use placeholder or sample content. The README describes the current implementation and does not imply those unfinished features are complete.
