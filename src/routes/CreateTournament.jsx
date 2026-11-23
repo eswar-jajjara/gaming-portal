@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/CreateTournament.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
 const CreateTournament = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -52,7 +54,7 @@ const CreateTournament = () => {
       }
 
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:8080/api/tournaments', formDataToSend, {
+      const response = await axios.post(\u0060${API_URL}/api/tournaments\u0060, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
