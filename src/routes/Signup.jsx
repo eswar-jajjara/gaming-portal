@@ -4,6 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import '../styles/signup.css';
 import logo from '/public/logo-gameing.png'; // Adjusted import path
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
 const Signup = () => {
   const [formData, setFormData] = useState({
     username: '',
@@ -31,7 +33,7 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/signup', formData);
+      const response = await axios.post(`${API_URL}/api/auth/signup`, formData);
       localStorage.setItem('token', response.data.token);
       navigate('/dashboard');
     } catch (error) {

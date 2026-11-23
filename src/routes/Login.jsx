@@ -4,6 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import '../styles/Login.css';
 import logo from '/public/logo.png'; // Adjusted import path
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,7 +19,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/login', {
+      const response = await axios.post(`${API_URL}/api/auth/login`, {
         email,
         password,
       });
